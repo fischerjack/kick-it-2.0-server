@@ -9,6 +9,14 @@ const mongoose     = require('mongoose');
 const logger       = require('morgan');
 const path         = require('path');
 
+//For authorization/authentication
+const cors         = require('cors');
+const session      = require('express-session');
+const passport     = require('passport');
+
+require('./configs/passport');
+
+
 
 mongoose
   .connect('mongodb://localhost/kick-it-server', {useNewUrlParser: true})
@@ -44,15 +52,44 @@ app.set('view engine', 'hbs');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(favicon(path.join(__dirname, 'public', 'images', 'favicon.ico')));
 
+// ADD SESSION SETTINGS HERE:
+app.use(session({
+  secret: 'some secret goes here',
+  resave: true,
+  saveUninitialized: true
+}));
+
+// USE passport.initialize() and passport.session() HERE:
+app.use(passport.initialize());
+app.use(passport.session());
 
 
 // default value for title local
 app.locals.title = 'Express - Generated with IronGenerator';
 
 
+// ADD CORS SETTINGS HERE TO ALLOW CROSS-ORIGIN INTERACTION:
+app.use(cors({
+  credentials: true,
+  origin: ['http://localhost:3000']
+}));
+
+
+// ROUTES MIDDLEWARE STARTS HERE:
+
+const authRoutes = require('./routes/auth-routes');
+app.use('/api', authRoutes);
 
 const index = require('./routes/index');
 app.use('/', index);
 
+
+
+
+
+// app.use((req, res, next) => {
+//   // If no routes match, send them the React HTML.
+//   res.sendFile(__dirname + "/public/index.html");
+// });
 
 module.exports = app;
