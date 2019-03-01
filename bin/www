@@ -51,6 +51,9 @@ server.listen(process.env.PORT, () => {
 const socket = require('socket.io');
 const io = socket(server);
 
+const usersOnline = [];
+// const gamesRunning = [];
+
 io.on('connection', (socket) => {
   console.log(socket.id);
     
@@ -59,11 +62,34 @@ io.on('connection', (socket) => {
   });
   
   socket.on('SEND_NEW_USER_ONLINE', function(user){
-    io.emit('RECEIVE_NEW_USER_ONLINE', user);
+    if(usersOnline.findIndex(element => {user._id === element._id}) === -1){
+      usersOnline.push(user);
+    }
+    io.emit('RECEIVE_NEW_USER_ONLINE', usersOnline);
   });
 
   socket.on('SEND_DELETE_FROM_USERS_ONLINE', function(user){
-    io.emit('RECEIVE_DELETE_FROM_USERS_ONLINE', user);
+    const indexToRemove = usersOnline.findIndex(element => {
+      return user._id === element._id
+    });
+    if(indexToRemove != -1){
+      usersOnline.splice(indexToRemove, 1);
+      io.emit('RECEIVE_DELETE_FROM_USERS_ONLINE', usersOnline);
+    }
   });
+
+
+  //NEED TO SEPARATE EXISTING GAME FILES - GAME DRAWING FOR CLIENT SIDE AND GAME CONTROL FOR SERVER SIDE
+  
+  // socket.on('SEND_CREATE_NEW_GAME', function(data){
+  //   gamesRunning.push({
+  //     gameInstance: new,
+  //     owner: data._id,
+  //     players: [data._id]
+  //   });
+  //   io.emit('RECEIVE_CREATE_NEW_GAME', data);
+  // });
+
+
 });
 
