@@ -38,7 +38,10 @@ authRoutes.post('/signup', (req, res, next) => {
 
     const newUser = new User({
       username,
-      password: hash
+      password: hash,
+      bio: "This player hasn't updated their bio yet...",
+      wins: 0,
+      losses: 0
     });
 
     newUser.save(err => {
@@ -103,6 +106,34 @@ authRoutes.post('/loggedin', (req,res,next) => {
   //req.isAuthenticated() is defined by passport
   if(req.isAuthenticated()){
     res.status(200).json(req.user);
+    return;
+  }
+  res.status(403).json({message: 'unauthorized'});
+});
+
+authRoutes.post('/edit-profile', (req,res,next) => {
+  if(req.isAuthenticated()){
+    const {_id, bio} = req.body;
+    User.findByIdAndUpdate( {_id}, {bio})
+      .then(mongooseResponse => {
+        console.log(mongooseResponse);
+        res.status(200).json({message: 'success'});
+      })
+      .catch(err => console.log(err));
+    return;
+  }
+  res.status(403).json({message: 'unauthorized'});
+});
+
+authRoutes.post('/delete-user', (req,res,next) => {
+  if(req.isAuthenticated()){
+    const {_id} = req.body;
+    User.findByIdAndDelete(_id)
+      .then(info => {
+        console.log(info);
+        res.status(200).json({message: `${_id} deleted`});
+      })
+      .catch(err => console.log(err));
     return;
   }
   res.status(403).json({message: 'unauthorized'});
