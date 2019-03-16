@@ -1,0 +1,16 @@
+#canvas{
+  border: solid black 1px;
+  background: white;
+}
+
+div{
+  display: flex;
+  height: 80vh;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+body{
+  background: white;  
+}

@@ -5,7 +5,7 @@ const http = require('http');
 let app = require('../app');
 
 //For chat and multiplayer
-
+const GameLogic = require('../GameLogic');
 
 // catch 404 and render a not-found.hbs template
 app.use((req, res, next) => {
@@ -66,7 +66,7 @@ io.on('connection', (socket) => {
       usersOnline.push(user);
     }
     io.emit('RECEIVE_NEW_USER_ONLINE', usersOnline);
-    io.emit('RECEIVE_CREATE_NEW_GAME');
+    io.emit('RECEIVE_UPDATE_GAMELIST', gameList);
   });
 
   socket.on('SEND_DELETE_FROM_USERS_ONLINE', function(user){
@@ -84,7 +84,11 @@ io.on('connection', (socket) => {
       io.emit('RECEIVE_UPDATE_GAMELIST', gameList);
     } else{
       console.log('Received new game owner id: ', data._id);
-      gameList.push(data);
+      //CREATE NEW GAME
+      const game = {
+        [data._id]: new GameLogic()
+      }
+      gameList.push(game);
       console.log(gameList);
       io.emit('RECEIVE_UPDATE_GAMELIST', gameList);
     }
@@ -100,6 +104,57 @@ io.on('connection', (socket) => {
       message: `${user._id} game deleted`,
       gameList
     });
+  });
+
+  socket.on('SEND_KEYS', function(data){
+    console.log(data.keys);
+    // console.log(gameList)
+    // const gameIndex = gameList.findIndex(element => {
+    //   return element._id === data._id;
+    // })
+    //Get GameLogic instance
+    // console.log(gameList[gameIndex]);
+    // const game = gameList[gameIndex];
+    console.log(gameList);
+    const game = gameList[0][data._id];
+    //Check player collisions with the map elements and prevent collisions if necessary, then take player actions and draw players
+    game.players.forEach(element => {
+      for(let i = 0; i < game.map.mapTerrain.length; i++){
+        element.collisionDirection = game.collisionCheck(element, game.map.mapTerrain[i]);
+        element.collisionPrevention();
+      }
+      game.players.forEach(e => {
+        if(element !== e){
+          element.collisionDirection = game.collisionCheck(element, e);
+          if(element.collisionDirection == 'l' || element.collisionDirection == 'r'){
+            element.collisionPrevention();
+          } else if(element.collisionDirection == 't'){
+            e.grounded = true;
+            e.jumping = false;
+            element.jumping = true;
+          } else if(element.collisionDirection == 'b'){
+            e.jumping = false;
+            element.grounded = true;
+            element.jumping = false;
+          }
+          element.attack(data.keys, e);
+        }
+      });
+      
+      element.action(data.keys);
+      element.respawn(game.map);
+      if(element.jumping == false){
+        element.currentSpriteArray = element.spriteArrays[0];
+        element.numberOfFrames = element.currentSpriteArray.length - 1;
+      }
+    });
+
+
+    io.emit('RECEIVE_KEYS', {
+      map: game.map,
+      players: game.players
+    });
+
   });
 
   //NEED TO SEPARATE EXISTING GAME FILES - GAME DRAWING FOR CLIENT SIDE AND GAME CONTROL FOR SERVER SIDE
