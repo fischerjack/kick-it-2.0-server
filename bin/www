@@ -89,16 +89,18 @@ io.on('connection', (socket) => {
         [data._id]: new GameLogic()
       }
       gameList.push(game);
+      sendGameFrame(game[data._id]);
       console.log(gameList);
+      
       io.emit('RECEIVE_UPDATE_GAMELIST', gameList);
     }
   });
 
   socket.on('SEND_END_GAME', function(user){
     console.log('before logout',gameList)
-    gameList.splice(gameList.findIndex(element => {
-      return element._id === user._id
-    }), 1);
+    const gameIndex = gameList.findIndex(element => { return element._id === user._id });
+    // gameList[gameIndex].gameRunning = false;
+    gameList.splice(gameIndex, 1);
     console.log('after logout',gameList)
     io.emit('RECEIVE_END_GAME', {
       message: `${user._id} game deleted`,
@@ -108,66 +110,58 @@ io.on('connection', (socket) => {
 
   socket.on('SEND_KEYS', function(data){
     console.log(data.keys);
-    // console.log(gameList)
-    // const gameIndex = gameList.findIndex(element => {
-    //   return element._id === data._id;
-    // })
-    //Get GameLogic instance
-    // console.log(gameList[gameIndex]);
-    // const game = gameList[gameIndex];
+
     console.log(gameList);
     const game = gameList[0][data._id];
-    //Check player collisions with the map elements and prevent collisions if necessary, then take player actions and draw players
-    game.players.forEach(element => {
-      for(let i = 0; i < game.map.mapTerrain.length; i++){
-        element.collisionDirection = game.collisionCheck(element, game.map.mapTerrain[i]);
-        element.collisionPrevention();
-      }
-      game.players.forEach(e => {
-        if(element !== e){
-          element.collisionDirection = game.collisionCheck(element, e);
-          if(element.collisionDirection == 'l' || element.collisionDirection == 'r'){
-            element.collisionPrevention();
-          } else if(element.collisionDirection == 't'){
-            e.grounded = true;
-            e.jumping = false;
-            element.jumping = true;
-          } else if(element.collisionDirection == 'b'){
-            e.jumping = false;
-            element.grounded = true;
-            element.jumping = false;
-          }
-          element.attack(data.keys, e);
-        }
-      });
-      
-      element.action(data.keys);
-      element.respawn(game.map);
-      if(element.jumping == false){
-        element.currentSpriteArray = element.spriteArrays[0];
-        element.numberOfFrames = element.currentSpriteArray.length - 1;
-      }
-    });
-
-
-    io.emit('RECEIVE_KEYS', {
-      map: game.map,
-      players: game.players
-    });
+    game.keys = data.keys;
+   
 
   });
-
-  //NEED TO SEPARATE EXISTING GAME FILES - GAME DRAWING FOR CLIENT SIDE AND GAME CONTROL FOR SERVER SIDE
   
-  // socket.on('SEND_CREATE_NEW_GAME', function(data){
-  //   gamesRunning.push({
-  //     gameInstance: new,
-  //     owner: data._id,
-  //     players: [data._id]
-  //   });
-  //   io.emit('RECEIVE_CREATE_NEW_GAME', data);
-  // });
 
+  function sendGameFrame(game){
+
+    // Check player collisions with the map elements and prevent collisions if necessary
+    // then take player actions
+    // then broadcast coordinates
+
+    setInterval(() => {
+      game.players.forEach(element => {
+        for(let i = 0; i < game.map.mapTerrain.length; i++){
+          element.collisionDirection = game.collisionCheck(element, game.map.mapTerrain[i]);
+          element.collisionPrevention();
+        }
+        game.players.forEach(e => {
+          if(element !== e){
+            element.collisionDirection = game.collisionCheck(element, e);
+            if(element.collisionDirection == 'l' || element.collisionDirection == 'r'){
+              element.collisionPrevention();
+            } else if(element.collisionDirection == 't'){
+              e.grounded = true;
+              e.jumping = false;
+              element.jumping = true;
+            } else if(element.collisionDirection == 'b'){
+              e.jumping = false;
+              element.grounded = true;
+              element.jumping = false;
+            }
+            element.attack(game.keys, e);
+          }
+        });
+        element.action(game.keys);
+        element.respawn(game.map);
+        if(element.jumping == false){
+          element.currentSpriteArray = element.spriteArrays[0];
+          element.numberOfFrames = element.currentSpriteArray.length - 1;
+        }
+      });
+      io.emit('RECEIVE_KEYS', {
+        map: game.map,
+        players: game.players
+      });
+
+    }, 17);
+  }
 
 });
 

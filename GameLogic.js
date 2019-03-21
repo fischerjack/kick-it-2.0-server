@@ -195,7 +195,11 @@ class Player{
 class GameLogic{
   constructor(){
     this.map = new Map(1000, 300);
-    this.players = [new Player(this.map.canvasWidth / 8 * 3, 180, 38, 39, 37, 191, './goten-sprite-compressed.png')]
+    this.players = [new Player(this.map.canvasWidth / 8 * 3, 180, 38, 39, 37, 191, './goten-sprite-compressed.png'),
+                    new Player(this.map.canvasWidth / 8 * 4.5, 180, 87, 68, 65, 70, 'c17super-sprite-compressed.png')];
+    // this.gameRunning = true;
+    this.keys = [];
+    // this.gameLoop();
   }
 
   collisionCheck(shapeA, shapeB){
@@ -230,8 +234,8 @@ class GameLogic{
         }
     }
     return colDir;
-
   }
+
 }
 
 module.exports = GameLogic;
